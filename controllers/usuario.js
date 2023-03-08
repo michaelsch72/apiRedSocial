@@ -2,8 +2,12 @@
 const usuario = require("../models/usuario");
 const bcrypt = require("bcrypt");
 const moongosePagination = require("mongoose-pagination");
+const fs =require("fs");
+const path=require("path");
 //importar servicios de jwt
 const jwt = require("../servicios/jwt");
+const { exists } = require("../models/usuario");
+const seguirServicio= require("../servicios/seguirServicio")
 
 //registro de usuarios
 const registro = (req, res) => {
@@ -42,7 +46,7 @@ const registro = (req, res) => {
       }
 
       // Cifrar la contraseña
-      let pwd = await bcrypit.hash(params.contraseña, 10);
+      let pwd = await bcrypt.hash(params.contraseña, 10);
       params.contraseña = pwd;
 
       // Crear objeto de usuario
@@ -123,7 +127,11 @@ const perfil = (req, res) => {
           message: "el usuario no existe o hay error",
         });
       }
-      //devolver el resultado
+
+      //informacion de seguimiento
+
+      const seguirInfo=seguirServicio.sigoEsteUsuario(req.usuario.id,id);
+
       //devolver informacion de datos al perfil
       return res.status(200).send({
         status: "success",
@@ -244,6 +252,79 @@ const actualizar = (req, res) => {
       }
     });
 };
+const upload = (req, res) => {
+
+  // Recoger el fichero de imagen y comprobar que existe
+  if (!req.file) {
+      return res.status(404).send({
+          status: "error",
+          message: "Petición no incluye la imagen"
+      });
+  }
+
+  // Conseguir el nombre del archivo
+  let imagen = req.file.originalname;
+
+  // Sacar la extension del archivo
+  const imageSplit = imagen.split("\.");
+  const extension = imageSplit[1];
+
+  // Comprobar extension
+  if (extension != "png" && extension != "jpg" && extension != "jpeg" && extension != "gif") {
+
+      // Borrar archivo subido
+      const filePath = req.file.path;
+      const fileDeleted = fs.unlinkSync(filePath);
+
+      // Devolver respuesta negativa
+      return res.status(400).send({
+          status: "error",
+          message: "Extensión del fichero invalida"
+      });
+  }
+
+  // Si si es correcta, guardar imagen en bbdd
+  usuario.findOneAndUpdate({ _id: req.usuario.id }, { imagen: req.file.filename }, { new: true }, (error, userUpdated) => {
+      if (error || !userUpdated) {
+          return res.status(500).send({
+              status: "error",
+              message: "Error en la subida del avatar"
+          })
+      }
+
+      // Devolver respuesta
+      return res.status(200).send({
+          status: "success",
+          usuario: userUpdated,
+          file: req.file,
+      });
+  });
+
+}
+const avatar =(req,res)=>{
+//sacar los parametros de la url
+const file =req.params.file;
+
+
+//montar el path real de la imagen
+const filePath="./almacenar/avatars/"+file;
+// comprobar que el archivo existe
+fs.stat(filePath,(error,exists)=>{
+
+  if(!exists){
+     return res.status(404).send({
+      status:"error",
+      message:"no existe la imagen"
+    });
+  }
+
+
+//devolver un file
+  return res.sendFile(path.resolve(filePath));
+});
+}
+
+
 
 //exportar acciones
 module.exports = {
@@ -252,4 +333,6 @@ module.exports = {
   perfil,
   listar,
   actualizar,
+  upload,
+  avatar
 };
