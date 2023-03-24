@@ -121,7 +121,7 @@ const perfil = (req, res) => {
   usuario
     .findById(id)
     .select({ contraseña: 0, rol: 0 })
-    .exec((error, perfilUsuario) => {
+    .exec(async(error, perfilUsuario) => {
       if (error || !perfilUsuario) {
         returnres.status(404).send({
           message: "el usuario no existe o hay error",
@@ -130,13 +130,15 @@ const perfil = (req, res) => {
 
       //informacion de seguimiento
 
-      const seguirInfo=seguirServicio.sigoEsteUsuario(req.usuario.id,id);
+      const seguirInfo=await seguirServicio.sigoEsteUsuario(req.usuario.id,id);
 
       //devolver informacion de datos al perfil
       return res.status(200).send({
         status: "success",
         usuario: perfilUsuario,
-      });
+        seguidores:seguirInfo.seguidores,
+      siguiendo:seguirInfo.siguiendo
+          });
     });
 };
 const listar = (req, res) => {
@@ -154,7 +156,7 @@ const listar = (req, res) => {
   usuario
     .find()
     .sort("_id")
-    .paginate(page, itemsporPagina, (error, usuarios, total) => {
+    .paginate(page, itemsporPagina, async(error, usuarios, total) => {
       //Devolver el resultado
       if (error || !usuarios) {
         return res.status(404).send({
@@ -163,6 +165,8 @@ const listar = (req, res) => {
           error,
         });
       }
+
+        let seguirServicio=await  seguirServicio.sigoEsteUsuario(req.user.id);
       return res.status(200).send({
         status: "success",
         usuarios,
@@ -170,6 +174,8 @@ const listar = (req, res) => {
         itemsporPagina,
         total,
         pages: Math.ceil(total / itemsporPagina),
+        usuarioSeguido:idusuarioSeguidos.siguiendo,   
+        seguidores:idusuarioSeguidos.seguidores
       });
     });
 };

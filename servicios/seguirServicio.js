@@ -31,12 +31,8 @@ const idusuarioSeguidos = async (identityUsuarioId) => {
 const sigoEsteUsuario = async (identityUsuarioId, profileUsuarioId) => {
   let siguiendo = await seguir
     .findOne({ usuario: identityUsuarioId ,"followed":profileUsuarioId})
-    .select({ followed: 1, _id: 0 })
-    .exec();
   let seguidores = await seguir
     .findOne({ "usuario":profileUsuarioId, followed: identityUsuarioId })
-    .select({ usuario: 1, _id: 0 })
-    .exec();
     return {siguiendo,
     seguidores
     };

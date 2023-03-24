@@ -69,7 +69,7 @@ const dejarSeguir = (req, res) => {
         message: "has dejado de seguir al usuario",
       });
     });
-};
+}
 
 //accion listado de usuarios que estoy siguiendo
 const siguiendo = (req, res) => {
@@ -91,7 +91,7 @@ const siguiendo = (req, res) => {
     .find({ usuario: usuario_id })
     .populate("usuario followed","-contraseña -rol -__v")
     .paginate(pagina,itemsPorPagina,async(error, follows,total) => {
-      //listado de usuario que siguen a un usauario me siguen a mi
+      //listado de usuario que siguen a un usuario me siguen a mi
 
       // sacar un array de id de los usuarios que me siguen y los que sigos como usuario identificado
       let idusuarioSeguidos=await seguirServicios.idusuarioSeguidos(req.usuario.id)
@@ -108,17 +108,46 @@ const siguiendo = (req, res) => {
        });
     });
     
-};
+}
 
 // accion listado de usuarios que me siguen
+const seguidores = (req, res) => {
+  //sacar id del usuario identificado
+  let usuario_id = req.usuario.id;
 
-const seguidores = (res, req) => {
-  return res.status(200).send({
-    status: "success",
-    message: "",
-  });
-};
+  //comprobar si me llega el id por parametro en la url
+  if (req.params.id) usuario_id = req.params.id;
 
+  //comprobar si me llega la pagina si no la pagina 1
+  let pagina = 1;
+  if (req.params.pagina) pagina = req.params.pagina;
+
+  // usuario por pagina quiero mostrar
+  const itemsPorPagina = 2;
+
+  // find a follow,popular datos del usuario y paginar por mongoose  paginate
+  seguir
+    .find({ followed: usuario_id })
+    .populate("usuario followed","-contraseña -rol -__v")
+    .paginate(pagina,itemsPorPagina,async(error, follows,total) => {
+      //listado de usuario que siguen a un usuario me siguen a mi
+
+      // sacar un array de id de los usuarios que me siguen y los que sigos como usuario identificado
+      let idusuarioSeguidos=await seguirServicios.idusuarioSeguidos(req.usuario.id)
+
+      return res.status(200).send({
+        status: "success",
+        message: "listado de usuarios que estoy siguiendo",
+        follows,
+        total,
+        pagina:Math.ceil(total/itemsPorPagina),
+        usuarioSeguido:idusuarioSeguidos.siguiendo,   
+        seguidores:idusuarioSeguidos.seguidores
+
+       });
+    });
+    
+}
 //exportar acciones
 module.exports = {
   pruebaSeguimiento,
